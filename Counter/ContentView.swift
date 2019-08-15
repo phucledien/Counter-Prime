@@ -8,8 +8,13 @@
 
 import SwiftUI
 
+struct PrimeAlert: Identifiable {
+  let prime: Int
+  var id: Int { self.prime }
+}
+
 struct ContentView : View {
-    @ObjectBinding var state: AppState
+    @ObservedObject var state: AppState
 
     var body: some View {
         NavigationView {
@@ -35,9 +40,9 @@ struct ContentView_Previews : PreviewProvider {
 #endif
 
 struct CounterView: View {
-    @ObjectBinding var state: AppState
+    @ObservedObject var state: AppState
     @State var isShowModal = false
-    @State var alertNthPrime: Int?
+    @State var alertNthPrime: PrimeAlert?
     
     var body: some View {
         VStack {
@@ -47,7 +52,7 @@ struct CounterView: View {
                 }
                 
                 Text("\(self.state.count)")
-                    .color(state.count.isPrime() ? .green : .red)
+                    .foregroundColor(state.count.isPrime() ? .green : .red)
                 
                 Button(action: { self.state.count += 1 }) {
                     Text("+")
@@ -57,24 +62,20 @@ struct CounterView: View {
                 Text("Is this prime?")
             }
             
-            Button(action: {
-                nthPrime(self.state.count) { prime in
-                    self.alertNthPrime = prime
-                }
+            Button(action: { nthPrime(self.state.count) { prime in
+                guard let prime = prime else {return}
+                self.alertNthPrime = PrimeAlert(prime: prime)
+            }
             }) {
                 Text("What is the \(ordinal(self.state.count)) prime?")
             }
         }
         .font(.title)
         .navigationBarTitle(Text("Counter demo"), displayMode: .inline)
-        .presentation(
-            self.isShowModal
-                ? Modal(IsPrimeModalView(state: state),onDismiss: { self.isShowModal = false })
-                : nil
-        )
-            .presentation(self.$alertNthPrime) { n in
-                Alert(title: Text("The \(ordinal(self.state.count)) prime is \(n)"), dismissButton: Alert.Button.default(Text("Ok")))
-        }
+        .alert(item: self.$alertNthPrime, content: { n in
+            Alert(title: Text("The \(ordinal(self.state.count)) prime is \(n.prime)"), dismissButton: Alert.Button.default(Text("Ok")))
+        })
+            .sheet(isPresented: $isShowModal) { IsPrimeModalView(state: self.state) }
     }
     
     private func ordinal(_ n: Int) -> String {
@@ -85,7 +86,7 @@ struct CounterView: View {
 }
 
 struct IsPrimeModalView: View {
-    @ObjectBinding var state: AppState
+    @ObservedObject var state: AppState
     
     var body: some View {
         VStack {
@@ -109,11 +110,11 @@ struct IsPrimeModalView: View {
 
 
 struct FavoritePrimesView: View {
-    @ObjectBinding var state: AppState
+    @ObservedObject var state: AppState
     
     var body: some View {
         List {
-            ForEach(self.state.favoritePrimes) { prime in
+            ForEach(self.state.favoritePrimes, id: \.self) { prime in
                 Text("\(prime)")
             }
             .onDelete { indexSet in

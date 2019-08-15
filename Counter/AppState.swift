@@ -9,19 +9,19 @@
 import SwiftUI
 import Combine
 
-class AppState: BindableObject, Codable {
-    var didChange = PassthroughSubject<Void, Never>()
+class AppState: ObservableObject, Codable {
+    var objectWillChange = ObservableObjectPublisher()
     
     var count = 0 {
-        didSet {
-            didChange.send()
+        willSet {
+            objectWillChange.send()
             saveToUserDefault()
         }
     }
     
     var favoritePrimes: [Int] = [] {
-        didSet {
-            didChange.send()
+        willSet {
+            objectWillChange.send()
             saveToUserDefault()
         }
     }
